@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<meta name="theme-color" content="#eef2ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1715" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Ledger</title>
+<style>
+:root{
+  --bg:#eef2ef; --card:#fbfcfb; --ink:#1b2a2f; --muted:#667577; --line:#d6dedb;
+  --accent:#0e6b5c; --accent-ink:#ffffff; --neg:#b23a48; --pos:#0e6b5c; --chip:#e1e8e5;
+  --track:#e3eae7; --shadow:0 1px 0 rgba(27,42,47,.06);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0f1715; --card:#18221f; --ink:#e6eeea; --muted:#8fa09b; --line:#26332f;
+    --accent:#4fc3a6; --accent-ink:#06231c; --neg:#f07a8a; --pos:#4fc3a6; --chip:#22302c;
+    --track:#22302c; --shadow:none;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{
+  font:16px/1.45 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  font-variant-numeric:tabular-nums;
+  padding-top:env(safe-area-inset-top,0px);
+  -webkit-text-size-adjust:100%;
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-family:ui-rounded,"SF Pro Rounded",-apple-system,system-ui,sans-serif}
+
+header{
+  position:sticky;top:0;z-index:5;background:var(--bg);
+  padding:14px 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+header h1{margin:0;font-size:28px;font-weight:700;letter-spacing:-.02em}
+.months{display:flex;align-items:center;gap:2px}
+.months button{border:0;background:var(--chip);width:36px;height:36px;border-radius:50%;font-size:18px;line-height:1}
+.months span{min-width:88px;text-align:center;font-size:14px;font-weight:600}
+
+main{padding:2px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:640px;margin:0 auto}
+
+/* The one bold element: the passbook-style hero figure */
+.hero{padding:10px 4px 22px}
+.hero .label{color:var(--muted);font-size:15px}
+.hero .big{font-size:52px;font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:2px 0 16px}
+.hero .big small{font-size:24px;font-weight:700;margin-right:4px;color:var(--muted)}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);border-top:2px solid var(--ink);padding-top:10px}
+.trio div{display:flex;flex-direction:column}
+.trio span{font-size:13px;color:var(--muted)}
+.trio b{font-size:17px}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 12px;font-size:17px;font-weight:650}
+.card.list{padding:6px 0}
+.card.list h2{padding:10px 16px 0}
+.kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)}
+.kv:last-of-type{border-bottom:0}
+.kv span{color:var(--muted)}
+.kv.total{border-top:2px solid var(--ink);border-bottom:0;margin-top:4px;padding-top:10px}
+.kv.total span{color:var(--ink);font-weight:600}
+.verdict{margin:10px 0 0;font-weight:600}
+.pos{color:var(--pos)} .neg{color:var(--neg)}
+.empty{color:var(--muted);margin:6px 0;font-size:15px}
+.card.list .empty{padding:4px 16px 12px}
+
+.bar{margin:0 0 12px}
+.bar-top{display:flex;justify-content:space-between;font-size:15px;margin-bottom:5px}
+.bar-track{height:8px;background:var(--track);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:4px}
+
+.cols{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end}
+.col{text-align:center}
+.col-area{height:110px;display:flex;align-items:flex-end;justify-content:center}
+.col-bar{width:70%;background:var(--track);border-radius:6px 6px 2px 2px;min-height:3px}
+.col.cur .col-bar{background:var(--accent)}
+.col-v{font-size:12px;color:var(--muted);height:18px}
+.col-l{font-size:12px;color:var(--muted);margin-top:4px}
+.col.cur .col-l{color:var(--ink);font-weight:600}
+
+.day-h{font-size:13px;color:var(--muted);padding:12px 16px 4px;display:flex;justify-content:space-between}
+.row{display:flex;width:100%;text-align:left;align-items:center;gap:12px;border:0;background:none;padding:10px 16px}
+.row:active{background:var(--chip)}
+.row-main{flex:1;min-width:0}
+.row-title{font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-sub{font-size:13px;color:var(--muted)}
+.amt{font-weight:650;white-space:nowrap}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:8px 13px;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:15px}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filter{margin:0 0 14px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.filter::-webkit-scrollbar{display:none}
+.filter .chip{flex:none}
+
+.fixed-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.fixed-row:last-of-type{border-bottom:0}
+.fixed-row .row-main{cursor:pointer}
+.tag{font-size:12px;padding:2px 8px;border-radius:999px;background:var(--chip);color:var(--muted);margin-left:6px;vertical-align:1px}
+.pay{border:1px solid var(--accent);color:var(--accent);background:none;border-radius:999px;padding:6px 14px;font-weight:600;font-size:14px}
+.paid{color:var(--pos);font-weight:600;font-size:14px}
+.dim{color:var(--muted);font-size:14px}
+
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-weight:650;font-size:16px;background:var(--chip);margin-top:10px}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{background:none;color:var(--neg);border:1px solid var(--line)}
+.note{font-size:14px;color:var(--muted);margin:10px 0 0}
+.banner{display:flex;align-items:center;gap:12px;background:var(--chip);border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:15px}
+.banner div{flex:1}
+.banner button{border:0;background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:7px 14px;font-weight:600;font-size:14px}
+
+nav.tabs{
+  position:fixed;left:0;right:0;bottom:0;z-index:6;display:flex;
+  background:var(--card);border-top:1px solid var(--line);
+  padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));
+}
+nav.tabs button{flex:1;border:0;background:none;color:var(--muted);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 0}
+nav.tabs button.on{color:var(--accent)}
+nav.tabs svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fab{
+  position:fixed;right:18px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:7;
+  width:60px;height:60px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);
+  font-size:32px;line-height:1;box-shadow:0 6px 18px rgba(14,107,92,.35);
+}
+
+.sheet{position:fixed;inset:0;z-index:20;display:none}
+.sheet.open{display:block}
+.sheet-bg{position:absolute;inset:0;background:rgba(10,20,18,.45)}
+.sheet-panel{
+  position:absolute;left:0;right:0;bottom:0;max-height:92%;overflow:auto;
+  background:var(--bg);border-radius:20px 20px 0 0;
+  padding:8px 18px calc(18px + env(safe-area-inset-bottom,0px));
+  animation:up .22s ease-out;
+}
+@keyframes up{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion: reduce){.sheet-panel{animation:none}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sheet-head h3{margin:0;font-size:20px}
+.link{border:0;background:none;color:var(--accent);font-weight:600;padding:6px 0}
+.seg{display:flex;background:var(--chip);border-radius:11px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;padding:8px 2px;border-radius:9px;font-size:14px}
+.seg button.on{background:var(--card);font-weight:650;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.field input{width:100%;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 14px;font-size:17px}
+.amount-in{display:flex;align-items:baseline;gap:8px;border-bottom:2px solid var(--ink);padding:4px 2px 6px;margin-bottom:16px}
+.amount-in span{font-size:24px;font-weight:700;color:var(--muted)}
+.amount-in input{flex:1;min-width:0;border:0;background:none;font-size:40px;font-weight:800;padding:0;outline:none}
+
+.toast{position:fixed;left:50%;bottom:calc(150px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:15px;z-index:30;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header><h1 id="title">Ledger</h1><div class="months" id="months"></div></header>
+<main id="main"></main>
+
+<button class="fab" id="fab" aria-label="Add entry">+</button>
+
+<nav class="tabs" id="tabs">
+  <button data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>Home</button>
+  <button data-tab="entries"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>Entries</button>
+  <button data-tab="savings"><svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M8 8V6a4 4 0 018 0v2"/><path d="M12 12v4"/></svg>Savings</button>
+  <button data-tab="loans"><svg viewBox="0 0 24 24"><path d="M4 8h14l-3-3M20 16H6l3 3"/></svg>Loans</button>
+  <button data-tab="more"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Monthly</button>
+</nav>
+
+<div class="sheet" id="sheet"><div class="sheet-bg" data-close></div><div class="sheet-panel" id="sheetBody"></div></div>
+<input type="file" id="restoreFile" accept="application/json,.json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'hibba-ledger-v1';
+const METHODS = ['Cash','HBL card','Meezan card','Faysal credit card','SadaPay card','Standard Chartered card','Account transfer'];
+const CATS = ['Grocery','Eat-out','Car','Medical','Fixed monthly','Kids','Shopping','Bills','Other'];
+const PLACES = ['Stocks','Mutual funds','Cash','With Mama'];
+const GROUPS = {expense:'Expense', income:'Income', savings:'Savings', loan:'Loan'};
+const TYPE_LABEL = {
+  expense:'Expense', income:'Income', save_in:'Put in', save_out:'Took out',
+  lent:'I lent', lent_back:'Got back', borrowed:'I borrowed', borrowed_back:'I paid back'
+};
+
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const todayISO = () => { const d = new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); };
+const monthOf = iso => (iso||'').slice(0,7);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rs = n => 'Rs ' + Math.round(Math.abs(n)).toLocaleString('en-US');
+const rsS = n => (n < 0 ? '−' : '') + rs(n);
+const short = n => n >= 100000 ? (n/100000).toFixed(1).replace(/\.0$/,'') + 'L' : n >= 1000 ? Math.round(n/1000) + 'k' : String(Math.round(n));
+const parseAmt = v => Number(String(v ?? '').replace(/[^0-9.]/g,''));
+const sum = arr => arr.reduce((a,e) => a + Number(e.amount || 0), 0);
+
+function defaultFixed(){
+  return [
+    {id:uid(), name:'Mama’s gym', amount:30000, every:1},
+    {id:uid(), name:'Mustafa’s school fees', amount:0, every:1},
+    {id:uid(), name:'Mustafa’s football fees', amount:0, every:1},
+    {id:uid(), name:'Groceries (set aside)', amount:0, every:1},
+    {id:uid(), name:'Gmail & tech subscriptions', amount:0, every:1},
+    {id:uid(), name:'Mobile package', amount:0, every:2}
+  ];
+}
+function load(){
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && Array.isArray(d.entries)) { d.fixed = d.fixed || []; return d; } } catch(e){}
+  return {v:1, entries:[], fixed:defaultFixed(), lastBackup:0};
+}
+let db = load();
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(db)); }
+  catch(e){ alert('Couldn’t save on this phone. Free up storage, then try again.'); }
+}
+
+let state = {tab:'home', month: todayISO().slice(0,7), cat:null};
+function shiftMonth(m, d){ let [y,mo] = m.split('-').map(Number); mo += d; while(mo<1){mo+=12;y--} while(mo>12){mo-=12;y++} return y+'-'+pad(mo); }
+function monthLabel(m, short){ const [y,mo] = m.split('-').map(Number); return new Date(y,mo-1,1).toLocaleString('en-US', short ? {month:'short'} : {month:'long', year:'numeric'}); }
+function dayLabel(iso){ const [y,m,d] = iso.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-US',{weekday:'short', day:'numeric', month:'short'}); }
+
+const inMonth = m => db.entries.filter(e => monthOf(e.date) === m);
+function totals(m){
+  const es = inMonth(m);
+  const t = x => sum(es.filter(e => e.type === x));
+  return {income:t('income'), spent:t('expense'), saved:t('save_in') - t('save_out')};
+}
+function overall(){
+  const t = x => sum(db.entries.filter(e => e.type === x));
+  return {savings:t('save_in') - t('save_out'), owedToMe:t('lent') - t('lent_back'), iOwe:t('borrowed') - t('borrowed_back')};
+}
+function groupSum(arr, key){ const m = {}; for (const e of arr){ const k = e[key] || 'Other'; m[k] = (m[k]||0) + Number(e.amount); } return m; }
+const groupOf = t => t === 'expense' ? 'expense' : t === 'income' ? 'income' : (t === 'save_in' || t === 'save_out') ? 'savings' : 'loan';
+const inflow = t => ['income','save_out','lent_back','borrowed'].includes(t);
+
+function describe(e){
+  switch(e.type){
+    case 'expense': return [e.category, e.method].filter(Boolean).join(', ');
+    case 'income': return 'Income' + (e.method ? ', ' + e.method : '');
+    case 'save_in': return 'Into savings: ' + (e.place||'');
+    case 'save_out': return 'Out of savings: ' + (e.place||'');
+    case 'lent': return 'Lent to ' + (e.person||'');
+    case 'lent_back': return 'Got back from ' + (e.person||'');
+    case 'borrowed': return 'Borrowed from ' + (e.person||'');
+    case 'borrowed_back': return 'Paid back to ' + (e.person||'');
+  }
+  return '';
+}
+function row(e){
+  const up = inflow(e.type);
+  return `<button class="row" data-edit="${e.id}"><div class="row-main"><div class="row-title">${esc(e.item || TYPE_LABEL[e.type])}</div><div class="row-sub">${esc(describe(e))}</div></div><div class="amt num ${up?'pos':''}">${up?'+':''}${rs(e.amount)}</div></button>`;
+}
+function listByDate(arr, showTotals){
+  if (!arr.length) return '<p class="empty">Nothing logged yet. Tap + to add an entry.</p>';
+  const sorted = [...arr].sort((a,b) => b.date.localeCompare(a.date) || (b.created||0) - (a.created||0));
+  let html = '', cur = '';
+  for (const e of sorted){
+    if (e.date !== cur){
+      cur = e.date;
+      const dayTotal = showTotals ? sum(sorted.filter(x => x.date === cur && x.type === 'expense')) : 0;
+      html += `<div class="day-h"><span>${dayLabel(cur)}</span><span class="num">${dayTotal ? rs(dayTotal) : ''}</span></div>`;
+    }
+    html += row(e);
+  }
+  return html;
+}
+function bars(map){
+  const ent = Object.entries(map).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  if (!ent.length) return '<p class="empty">No spending logged this month.</p>';
+  const max = ent[0][1];
+  return ent.map(([k,v]) => `<div class="bar"><div class="bar-top"><span>${esc(k)}</span><span class="num">${rs(v)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(2, v/max*100)}%"></div></div></div>`).join('');
+}
+function trend(m){
+  const ms = []; for (let i=5;i>=0;i--) ms.push(shiftMonth(m,-i));
+  const vals = ms.map(x => totals(x).spent); const max = Math.max(...vals, 1);
+  return `<div class="cols">${ms.map((x,i) => `<div class="col ${x===m?'cur':''}"><div class="col-v num">${vals[i] ? short(vals[i]) : ''}</div><div class="col-area"><div class="col-bar" style="height:${vals[i]/max*100}%"></div></div><div class="col-l">${monthLabel(x,true)}</div></div>`).join('')}</div>`;
+}
+
+/* ---------- Views ---------- */
+function viewHome(){
+  const t = totals(state.month), o = overall();
+  const left = t.income - t.spent;
+  const pos = o.savings + o.owedToMe - o.iOwe;
+  const hasPosition = db.entries.some(e => groupOf(e.type) === 'savings' || groupOf(e.type) === 'loan');
+  const exp = inMonth(state.month).filter(e => e.type === 'expense');
+  const needBackup = db.entries.length && (!db.lastBackup || Date.now() - db.lastBackup > 14*864e5);
+  return `
+  ${needBackup ? `<div class="banner"><div>${db.lastBackup ? 'Last backup was over 2 weeks ago.' : 'You haven’t backed up yet.'} Your ledger lives only on this phone.</div><button data-backup>Back up</button></div>` : ''}
+  <section class="hero">
+    <div class="label">Spent in ${monthLabel(state.month)}</div>
+    <div class="big num"><small>Rs</small>${Math.round(t.spent).toLocaleString('en-US')}</div>
+    <div class="trio">
+      <div><span>Income</span><b class="num">${rs(t.income)}</b></div>
+      <div><span>Left over</span>${t.income ? `<b class="num ${left<0?'neg':''}">${rsS(left)}</b>` : '<b class="dim" style="font-weight:500">Add income</b>'}</div>
+      <div><span>To savings</span><b class="num">${rsS(t.saved)}</b></div>
+    </div>
+  </section>
+  <section class="card"><h2>Overall position</h2>
+    <div class="kv"><span>Savings balance</span><b class="num">${rsS(o.savings)}</b></div>
+    <div class="kv"><span>Others owe you</span><b class="num">${rsS(o.owedToMe)}</b></div>
+    <div class="kv"><span>You owe</span><b class="num">${rsS(o.iOwe)}</b></div>
+    <div class="kv total"><span>Net</span><b class="num ${pos<0?'neg':'pos'}">${rsS(pos)}</b></div>
+    <p class="verdict ${hasPosition ? (pos<0?'neg':'pos') : ''}">${hasPosition ? (pos<0 ? 'You’re on the bad side: you owe more than you hold.' : 'You’re on the good side.') : '<span class="dim">Add savings and loans to see where you stand.</span>'}</p>
+  </section>
+  <section class="card"><h2>By category</h2>${bars(groupSum(exp,'category'))}</section>
+  <section class="card"><h2>Last 6 months</h2>${trend(state.month)}</section>
+  <section class="card"><h2>By payment method</h2>${bars(groupSum(exp,'method'))}</section>`;
+}
+
+function viewEntries(){
+  const all = inMonth(state.month);
+  const cats = [...new Set(all.filter(e => e.type === 'expense').map(e => e.category || 'Other'))];
+  if (state.cat && !cats.includes(state.cat)) state.cat = null;
+  const shown = state.cat ? all.filter(e => e.type === 'expense' && (e.category||'Other') === state.cat) : all;
+  const chips = cats.length ? `<div class="chips filter"><button class="chip ${!state.cat?'on':''}" data-cat="">All</button>${cats.map(c => `<button class="chip ${state.cat===c?'on':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : '';
+  const total = sum(shown.filter(e => e.type === 'expense'));
+  return `${chips}
+  <section class="hero" style="padding-bottom:12px"><div class="label">${state.cat ? esc(state.cat) + ' spending' : 'Total spent'}</div><div class="big num" style="font-size:40px;margin-bottom:0"><small>Rs</small>${Math.round(total).toLocaleString('en-US')}</div></section>
+  <section class="card list">${listByDate(shown, true)}</section>`;
+}
+
+function viewSavings(){
+  const E = db.entries.filter(e => groupOf(e.type) === 'savings');
+  const by = {}; for (const e of E){ const k = e.place || 'Other'; by[k] = (by[k]||0) + (e.type === 'save_in' ? 1 : -1) * e.amount; }
+  return `
+  <section class="hero"><div class="label">Total savings</div><div class="big num"><small>Rs</small>${rsS(overall().savings).replace('Rs ','')}</div></section>
+  <section class="card"><h2>Where it’s kept</h2>${Object.keys(by).length ? Object.entries(by).map(([k,v]) => `<div class="kv"><span>${esc(k)}</span><b class="num">${rsS(v)}</b></div>`).join('') : '<p class="empty">Nothing saved yet. Add money you put into stocks, mutual funds, cash or with Mama.</p>'}</section>
+  <section class="card list"><h2>History</h2>${listByDate(E)}</section>`;
+}
+
+function viewLoans(){
+  const L = db.entries.filter(e => groupOf(e.type) === 'loan');
+  const ppl = {};
+  for (const e of L){
+    const p = (e.person || 'Unknown').trim(); ppl[p] = ppl[p] || {they:0, me:0};
+    if (e.type === 'lent') ppl[p].they += +e.amount;
+    if (e.type === 'lent_back') ppl[p].they -= +e.amount;
+    if (e.type === 'borrowed') ppl[p].me += +e.amount;
+    if (e.type === 'borrowed_back') ppl[p].me -= +e.amount;
+  }
+  const o = overall();
+  const people = Object.entries(ppl).map(([p,v]) => {
+    const parts = [];
+    if (Math.round(v.they)) parts.push(`<b class="num pos">Owes you ${rsS(v.they)}</b>`);
+    if (Math.round(v.me)) parts.push(`<b class="num neg">You owe ${rsS(v.me)}</b>`);
+    return `<div class="kv"><span>${esc(p)}</span><span style="text-align:right">${parts.join('<br>') || '<span class="dim">Settled</span>'}</span></div>`;
+  }).join('');
+  return `
+  <section class="hero"><div class="trio" style="border-top:0;padding-top:0">
+    <div><span>Others owe you</span><b class="num pos" style="font-size:24px">${rsS(o.owedToMe)}</b></div>
+    <div><span>You owe</span><b class="num neg" style="font-size:24px">${rsS(o.iOwe)}</b></div>
+    <div></div></div></section>
+  <section class="card"><h2>By person</h2>${people || '<p class="empty">No loans logged. Tap + and choose Loan.</p>'}</section>
+  <section class="card list"><h2>History</h2>${listByDate(L)}</section>`;
+}
+
+function paidIn(f, m){ return db.entries.some(e => e.fixedId === f.id && monthOf(e.date) === m); }
+function isDue(f, m){ return f.every === 2 ? !paidIn(f, shiftMonth(m,-1)) : true; }
+function viewMore(){
+  const m = state.month;
+  let due = 0, paid = 0;
+  const rows = db.fixed.map(f => {
+    const p = paidIn(f, m), d = isDue(f, m);
+    if (d || p) due += +f.amount || 0;
+    if (p) paid += sum(db.entries.filter(e => e.fixedId === f.id && monthOf(e.date) === m));
+    const status = p ? '<span class="paid">Paid ✓</span>' : d ? `<button class="pay" data-pay="${f.id}">Pay</button>` : '<span class="dim">Not this month</span>';
+    return `<div class="fixed-row"><div class="row-main" data-fixed="${f.id}"><div class="row-title">${esc(f.name)}${f.every===2?'<span class="tag">every 2 months</span>':''}</div><div class="row-sub num">${f.amount ? rs(f.amount) : 'Tap to set amount'}</div></div>${status}</div>`;
+  }).join('');
+  return `
+  <section class="hero"><div class="label">Set aside for ${monthLabel(m)}</div><div class="big num"><small>Rs</small>${Math.round(due).toLocaleString('en-US')}</div>
+    <div class="trio"><div><span>Paid so far</span><b class="num">${rs(paid)}</b></div><div><span>Still to pay</span><b class="num">${rs(Math.max(0, due - paid))}</b></div><div></div></div></section>
+  <section class="card"><h2>Fixed monthly costs</h2>${rows || '<p class="empty">No fixed costs yet.</p>'}<button class="btn" data-newfixed>Add a fixed cost</button></section>
+  <section class="card"><h2>Backup</h2>
+    <p class="note" style="margin-top:0">Your ledger is stored only on this phone. Deleting the app icon deletes it, so back up often and keep the file in iCloud Drive or Files.</p>
+    <button class="btn primary" data-backup>Back up ledger</button>
+    <button class="btn" data-csv>Export for Excel / Sheets (CSV)</button>
+    <button class="btn" data-restore>Restore from a backup file</button>
+    <p class="note">${db.lastBackup ? 'Last backup: ' + new Date(db.lastBackup).toLocaleString('en-US',{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit'}) : 'No backup yet.'} ${db.entries.length} entries in total.</p>
+  </section>
+  <section class="card"><h2>Start over</h2><button class="btn danger" data-erase>Erase everything on this phone</button></section>`;
+}
+
+const TITLES = {home:'Ledger', entries:'Entries', savings:'Savings', loans:'Loans', more:'Monthly'};
+function render(){
+  $('#title').textContent = TITLES[state.tab];
+  const monthly = ['home','entries','more'].includes(state.tab);
+  $('#months').innerHTML = monthly ? `<button data-month="-1" aria-label="Previous month">‹</button><span>${monthLabel(state.month,true)} ${state.month.slice(0,4)}</span><button data-month="1" aria-label="Next month">›</button>` : '';
+  const v = {home:viewHome, entries:viewEntries, savings:viewSavings, loans:viewLoans, more:viewMore}[state.tab];
+  $('#main').innerHTML = v();
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === state.tab));
+}
+
+/* ---------- Entry sheet ---------- */
+let draft = null, sheetMode = 'entry';
+function openEntry(pre = {}, id = null){
+  sheetMode = 'entry';
+  if (id){ const e = db.entries.find(x => x.id === id); draft = {...e, _id:id}; }
+  else {
+    const lastMethod = [...db.entries].reverse().find(e => e.method)?.method || 'Cash';
+    draft = {type:'expense', date:todayISO(), category:'Grocery', method:lastMethod, place:'Cash', item:'', amount:'', person:'', ...pre};
+  }
+  renderSheet(); openSheet();
+  if (!id) setTimeout(() => $('#amt')?.focus(), 250);
+}
+function chipRow(field, options, optional){
+  return `<div class="chips">${options.map(o => `<button class="chip ${draft[field]===o?'on':''}" data-set="${field}" data-val="${esc(o)}">${esc(o)}</button>`).join('')}${optional && draft[field] ? `<button class="chip" data-set="${field}" data-val="">None</button>` : ''}</div>`;
+}
+function renderSheet(){
+  if (sheetMode === 'fixed') return renderFixedSheet();
+  const d = draft, g = groupOf(d.type);
+  const people = [...new Set(db.entries.filter(e => e.person).map(e => e.person))];
+  let h = `<div class="grab"></div><div class="sheet-head"><button class="link" data-close>Cancel</button><h3>${d._id ? 'Edit entry' : 'New entry'}</h3><button class="link" data-save>Save</button></div>`;
+  h += `<div class="seg">${Object.entries(GROUPS).map(([k,l]) => `<button class="${g===k?'on':''}" data-group="${k}">${l}</button>`).join('')}</div>`;
+  if (g === 'savings') h += `<div class="seg">${['save_in','save_out'].map(t => `<button class="${d.type===t?'on':''}" data-type="${t}">${TYPE_LABEL[t]}</button>`).join('')}</div>`;
+  if (g === 'loan') h += `<div class="seg">${['lent','lent_back','borrowed','borrowed_back'].map(t => `<button class="${d.type===t?'on':''}" data-type="${t}">${TYPE_LABEL[t]}</button>`).join('')}</div>`;
+  h += `<div class="amount-in"><span class="num">Rs</span><input id="amt" class="num" data-f="amount" inputmode="decimal" placeholder="0" value="${esc(d.amount)}" aria-label="Amount"></div>`;
+  const ph = {expense:'e.g. Tehzeeb bread', income:'e.g. Salary', savings:'Optional note', loan:'Optional note'}[g];
+  h += `<div class="field"><label for="item">${g==='expense' ? 'What was it?' : g==='income' ? 'Source' : 'Note'}</label><input id="item" data-f="item" placeholder="${ph}" value="${esc(d.item)}" autocomplete="off"></div>`;
+  if (g === 'loan') h += `<div class="field"><label for="person">Person</label><input id="person" data-f="person" list="ppl" placeholder="Who?" value="${esc(d.person)}" autocomplete="off"><datalist id="ppl">${people.map(p => `<option value="${esc(p)}">`).join('')}</datalist></div>`;
+  if (g === 'expense') h += `<div class="field"><label>Category</label>${chipRow('category', CATS)}</div>`;
+  if (g === 'savings') h += `<div class="field"><label>Where</label>${chipRow('place', PLACES)}</div>`;
+  if (g !== 'savings') h += `<div class="field"><label>${g==='expense' ? 'Paid with' : 'Account'}</label>${chipRow('method', METHODS, g !== 'expense')}</div>`;
+  h += `<div class="field"><label for="date">Date</label><input id="date" type="date" data-f="date" value="${esc(d.date)}"></div>`;
+  h += `<button class="btn primary" data-save>Save</button>`;
+  if (d._id) h += `<button class="btn danger" data-delete>Delete entry</button>`;
+  $('#sheetBody').innerHTML = h;
+}
+function saveDraft(){
+  const d = draft, g = groupOf(d.type), amt = parseAmt(d.amount);
+  if (!(amt > 0)) return toast('Enter an amount');
+  if (g === 'loan' && !String(d.person||'').trim()) return toast('Add the person’s name');
+  const e = {id: d._id || uid(), type: d.type, date: d.date || todayISO(), amount: amt, item: String(d.item||'').trim(), created: d.created || Date.now()};
+  if (g === 'expense'){ e.category = d.category || 'Other'; e.method = d.method || ''; }
+  if (g === 'income' || g === 'loan'){ if (d.method) e.method = d.method; }
+  if (g === 'savings') e.place = d.place || 'Cash';
+  if (g === 'loan') e.person = String(d.person).trim();
+  if (d.fixedId && g === 'expense') e.fixedId = d.fixedId;
+  const i = db.entries.findIndex(x => x.id === e.id);
+  if (i >= 0) db.entries[i] = e; else db.entries.push(e);
+  save(); closeSheet(); render(); toast(d._id ? 'Entry updated' : 'Entry saved');
+}
+
+/* ---------- Fixed cost sheet ---------- */
+function openFixed(id){
+  sheetMode = 'fixed';
+  const f = id ? db.fixed.find(x => x.id === id) : {name:'', amount:'', every:1};
+  draft = {...f, _id:id};
+  renderSheet(); openSheet();
+}
+function renderFixedSheet(){
+  const d = draft;
+  $('#sheetBody').innerHTML = `<div class="grab"></div><div class="sheet-head"><button class="link" data-close>Cancel</button><h3>${d._id ? 'Edit fixed cost' : 'New fixed cost'}</h3><button class="link" data-savefixed>Save</button></div>
+  <div class="field"><label for="fname">Name</label><input id="fname" data-f="name" value="${esc(d.name)}" placeholder="e.g. Mustafa’s school fees"></div>
+  <div class="amount-in"><span class="num">Rs</span><input class="num" data-f="amount" inputmode="decimal" placeholder="0" value="${esc(d.amount || '')}" aria-label="Amount"></div>
+  <div class="field"><label>How often</label><div class="seg"><button class="${d.every!==2?'on':''}" data-every="1">Every month</button><button class="${d.every===2?'on':''}" data-every="2">Every 2 months</button></div></div>
+  <button class="btn primary" data-savefixed>Save</button>
+  ${d._id ? '<button class="btn danger" data-delfixed>Remove fixed cost</button>' : ''}`;
+}
+function saveFixed(){
+  const d = draft; if (!String(d.name||'').trim()) return toast('Add a name');
+  const f = {id: d._id || uid(), name: String(d.name).trim(), amount: parseAmt(d.amount) || 0, every: d.every === 2 ? 2 : 1};
+  const i = db.fixed.findIndex(x => x.id === f.id);
+  if (i >= 0) db.fixed[i] = f; else db.fixed.push(f);
+  save(); closeSheet(); render(); toast('Fixed cost saved');
+}
+
+function openSheet(){ $('#sheet').classList.add('open'); }
+function closeSheet(){ $('#sheet').classList.remove('open'); draft = null; }
+let toastT;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+
+/* ---------- Backup / export ---------- */
+async function shareFile(name, text, type){
+  const blob = new Blob([text], {type});
+  try {
+    const file = new File([blob], name, {type});
+    if (navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file], title:name}); return true;
+    }
+  } catch(e){ if (e && e.name === 'AbortError') return false; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+  return true;
+}
+async function backup(){
+  const ok = await shareFile('ledger-backup-' + todayISO() + '.json', JSON.stringify({...db, exported: Date.now()}, null, 1), 'application/json');
+  if (ok){ db.lastBackup = Date.now(); save(); render(); toast('Backup ready'); }
+}
+async function exportCSV(){
+  const q = v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
+  const lines = [['Date','Type','Item','Amount (Rs)','Category','Paid with / account','Savings place','Person'].join(',')];
+  [...db.entries].sort((a,b) => a.date.localeCompare(b.date)).forEach(e => lines.push([e.date, TYPE_LABEL[e.type], e.item, e.amount, e.category, e.method, e.place, e.person].map(q).join(',')));
+  await shareFile('ledger-' + todayISO() + '.csv', lines.join('\n'), 'text/csv');
+}
+function restore(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const d = JSON.parse(r.result);
+      if (!d || !Array.isArray(d.entries)) throw new Error();
+      const ids = new Set(db.entries.map(e => e.id)); let added = 0;
+      for (const e of d.entries){ if (e && e.id && e.type && e.date && !ids.has(e.id)){ db.entries.push(e); added++; } }
+      if (Array.isArray(d.fixed) && d.fixed.length){
+        const fid = new Set(db.fixed.map(f => f.id));
+        const nameSet = new Set(db.fixed.map(f => f.name.toLowerCase()));
+        for (const f of d.fixed){
+          if (fid.has(f.id)) continue;
+          const same = db.fixed.find(x => x.name.toLowerCase() === String(f.name).toLowerCase());
+          if (same){ // keep backup's id so "paid" links still work
+            db.entries.forEach(e => { if (e.fixedId === same.id) e.fixedId = f.id; });
+            Object.assign(same, f);
+          } else if (!nameSet.has(String(f.name).toLowerCase())) db.fixed.push(f);
+        }
+      }
+      save(); render(); toast(added + ' entries restored');
+    } catch(e){ toast('That file isn’t a ledger backup'); }
+  };
+  r.readAsText(file);
+}
+
+/* ---------- Events ---------- */
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('button,[data-fixed],[data-close]'); if (!el) return;
+  const ds = el.dataset;
+  if ('close' in ds) return closeSheet();
+  if (ds.tab){ state.tab = ds.tab; window.scrollTo(0,0); return render(); }
+  if (ds.month){ state.month = shiftMonth(state.month, +ds.month); return render(); }
+  if (ds.edit) return openEntry({}, ds.edit);
+  if (ds.cat !== undefined && el.classList.contains('chip') && !ds.set){ state.cat = ds.cat || null; return render(); }
+  if (el.id === 'fab'){
+    const t = {savings:'save_in', loans:'lent'}[state.tab] || 'expense';
+    return openEntry({type:t});
+  }
+  if (ds.group){ draft.type = {expense:'expense', income:'income', savings:'save_in', loan:'lent'}[ds.group]; return renderSheet(); }
+  if (ds.type){ draft.type = ds.type; return renderSheet(); }
+  if (ds.set){ draft[ds.set] = ds.val; return renderSheet(); }
+  if ('save' in ds) return saveDraft();
+  if ('delete' in ds){ if (confirm('Delete this entry?')){ db.entries = db.entries.filter(e => e.id !== draft._id); save(); closeSheet(); render(); toast('Entry deleted'); } return; }
+  if (ds.pay){
+    const f = db.fixed.find(x => x.id === ds.pay);
+    const [y,m] = state.month.split('-'); const today = todayISO();
+    return openEntry({type:'expense', category:'Fixed monthly', item:f.name, amount:f.amount || '', fixedId:f.id, date: monthOf(today) === state.month ? today : y + '-' + m + '-01'});
+  }
+  if (ds.fixed) return openFixed(ds.fixed);
+  if ('newfixed' in ds) return openFixed(null);
+  if (ds.every){ draft.every = +ds.every; return renderSheet(); }
+  if ('savefixed' in ds) return saveFixed();
+  if ('delfixed' in ds){ if (confirm('Remove this fixed cost? Past payments stay in your ledger.')){ db.fixed = db.fixed.filter(f => f.id !== draft._id); save(); closeSheet(); render(); } return; }
+  if ('backup' in ds) return backup();
+  if ('csv' in ds) return exportCSV();
+  if ('restore' in ds) return $('#restoreFile').click();
+  if ('erase' in ds){
+    if (confirm('Erase every entry and fixed cost on this phone? Back up first if you might need them.') && confirm('This can’t be undone. Erase now?')){
+      db = {v:1, entries:[], fixed:defaultFixed(), lastBackup:0}; save(); render(); toast('Ledger erased');
+    }
+  }
+});
+document.addEventListener('input', ev => { const f = ev.target.dataset && ev.target.dataset.f; if (f && draft) draft[f] = ev.target.value; });
+$('#restoreFile').addEventListener('change', ev => { const f = ev.target.files[0]; if (f) restore(f); ev.target.value = ''; });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') closeSheet(); });
+
+render();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+</script>
+</body>
+</html>
